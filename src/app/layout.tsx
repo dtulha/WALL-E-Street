@@ -1,11 +1,8 @@
 
 import "@/index.css"
-import { Inter } from "next/font/google"
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as Sonner } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
-
-const inter = Inter({ subsets: ["latin"] })
 
 export const metadata = {
   title: "WALL-E Street",
@@ -19,7 +16,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body>
         <TooltipProvider>
           <Toaster />
           <Sonner />
