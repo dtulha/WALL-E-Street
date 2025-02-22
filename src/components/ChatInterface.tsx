@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, Mic, Send, StopCircle } from 'lucide-react'
+import Image from 'next/image'
 
 interface Message {
   id: string
@@ -14,6 +15,29 @@ interface Message {
   }
   chainOfThought?: string[]
 }
+
+const analysts = [
+  {
+    name: 'Warren Buffett',
+    avatar: '/avatars/warren-pixar.jpg',
+    thinking: 'Analyzing financial statements and cash flows...',
+  },
+  {
+    name: 'Cathie Wood',
+    avatar: '/avatars/cathie-pixar.jpg',
+    thinking: 'Evaluating technological disruption potential...',
+  },
+  {
+    name: 'Ben Graham',
+    avatar: '/avatars/ben-pixar.jpg',
+    thinking: 'Calculating margin of safety...',
+  },
+  {
+    name: 'Bill Ackman',
+    avatar: '/avatars/bill-pixar.jpg',
+    thinking: 'Assessing strategic value creation opportunities...',
+  },
+]
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -45,21 +69,22 @@ export default function ChatInterface() {
 
     // TODO: Implement actual API call to process the message
     setTimeout(() => {
-      const mockResponse: Message = {
-        id: Date.now().toString(),
-        content: "Based on our analysis, we believe this stock shows promising fundamentals...",
-        type: 'analyst',
+      const analystResponses = analysts.map((analyst) => ({
+        id: Date.now().toString() + analyst.name,
+        content: `Based on my analysis of ${content.toLowerCase()}, here are my insights...`,
+        type: 'analyst' as const,
         analyst: {
-          name: 'Warren Buffett',
-          avatar: '/avatars/warren-buffett.svg',
+          name: analyst.name,
+          avatar: analyst.avatar,
         },
         chainOfThought: [
-          "Analyzing financial statements...",
-          "Checking competitive advantage...",
-          "Evaluating management team...",
+          analyst.thinking.replace('...', ''),
+          "Evaluating market trends...",
+          "Forming investment thesis...",
         ],
-      }
-      setMessages((prev) => [...prev, mockResponse])
+      }))
+      
+      setMessages((prev) => [...prev, ...analystResponses])
       setIsAnalyzing(false)
     }, 2000)
   }
@@ -85,20 +110,26 @@ export default function ChatInterface() {
               }`}>
                 {message.type === 'analyst' && message.analyst && (
                   <div className="mb-2 flex items-center gap-2">
-                    <img
-                      src={message.analyst.avatar}
-                      alt={message.analyst.name}
-                      className="h-5 w-5 rounded-full"
-                    />
+                    <div className="relative h-5 w-5">
+                      <Image
+                        src={message.analyst.avatar}
+                        alt={message.analyst.name}
+                        fill
+                        className="rounded-full object-cover"
+                        sizes="20px"
+                      />
+                    </div>
                     <span className="text-sm font-medium text-gray-900">{message.analyst.name}</span>
                   </div>
                 )}
-                <p className="text-sm leading-relaxed">{message.content}</p>
+                <p className={`text-sm leading-relaxed ${message.type === 'user' ? 'text-white' : 'text-gray-900'}`}>
+                  {message.content}
+                </p>
                 {message.chainOfThought && (
                   <div className="mt-2 border-t border-gray-200 pt-2">
-                    <p className="mb-1 text-xs font-medium text-gray-500">Analysis:</p>
+                    <p className="mb-1 text-xs font-medium text-gray-700">Analysis:</p>
                     {message.chainOfThought.map((thought, index) => (
-                      <p key={index} className="text-xs text-gray-500">
+                      <p key={index} className="text-xs text-gray-700">
                         {index + 1}. {thought}
                       </p>
                     ))}
@@ -108,18 +139,38 @@ export default function ChatInterface() {
             </motion.div>
           ))}
           {isAnalyzing && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex items-center gap-2 text-sm text-gray-500"
-            >
-              <div className="flex space-x-1">
-                <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400" />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:0.2s]" />
-                <div className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:0.4s]" />
-              </div>
-              <span>Analyzing...</span>
-            </motion.div>
+            <div className="space-y-3">
+              {analysts.map((analyst, index) => (
+                <motion.div
+                  key={analyst.name}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.2 }}
+                  className="flex items-start gap-2"
+                >
+                  <div className="relative h-6 w-6">
+                    <Image
+                      src={analyst.avatar}
+                      alt={analyst.name}
+                      fill
+                      className="rounded-full object-cover"
+                      sizes="24px"
+                    />
+                  </div>
+                  <div className="rounded-lg bg-gray-800 p-3">
+                    <p className="text-sm font-medium text-white">{analyst.name}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="flex space-x-1">
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-white" style={{ animationDelay: '0ms' }} />
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-white" style={{ animationDelay: '200ms' }} />
+                        <div className="h-2 w-2 animate-bounce rounded-full bg-white" style={{ animationDelay: '400ms' }} />
+                      </div>
+                      <span className="text-sm text-white">{analyst.thinking}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           )}
         </div>
 

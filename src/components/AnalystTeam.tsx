@@ -7,7 +7,7 @@ const analysts = [
   {
     id: 'warren-buffett',
     name: 'Warren Buffett',
-    avatar: '/avatars/warren-buffett.svg',
+    avatar: '/avatars/warren-pixar.jpg',
     specialty: 'Value Investing',
     description: 'Focuses on companies with strong fundamentals, sustainable competitive advantages, and long-term growth potential.',
     status: 'idle',
@@ -15,7 +15,7 @@ const analysts = [
   {
     id: 'cathie-wood',
     name: 'Cathie Wood',
-    avatar: '/avatars/cathie-wood.svg',
+    avatar: '/avatars/cathie-pixar.jpg',
     specialty: 'Innovation & Growth',
     description: 'Specializes in disruptive innovation, emerging technologies, and high-growth opportunities in transformative sectors.',
     status: 'idle',
@@ -23,7 +23,7 @@ const analysts = [
   {
     id: 'ben-graham',
     name: 'Ben Graham',
-    avatar: '/avatars/ben-graham.svg',
+    avatar: '/avatars/ben-pixar.jpg',
     specialty: 'Fundamental Analysis',
     description: 'Expert in quantitative analysis, margin of safety principles, and identifying undervalued securities.',
     status: 'idle',
@@ -31,7 +31,7 @@ const analysts = [
   {
     id: 'bill-ackman',
     name: 'Bill Ackman',
-    avatar: '/avatars/bill-ackman.svg',
+    avatar: '/avatars/bill-pixar.jpg',
     specialty: 'Activist Investing',
     description: 'Focuses on special situations, corporate governance, and catalysts for value creation through strategic changes.',
     status: 'idle',
@@ -55,6 +55,8 @@ export default function AnalystTeam() {
                 alt={analyst.name}
                 fill
                 className="rounded-full object-cover"
+                sizes="64px"
+                priority
               />
               <div className={`absolute bottom-0 right-0 h-3 w-3 rounded-full ${
                 analyst.status === 'thinking' ? 'animate-pulse bg-amber-400' : 
