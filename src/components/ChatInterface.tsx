@@ -1,9 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link, Mic, Send, StopCircle, FileText, Copy, MessageCircle, X } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
 import Image from 'next/image'
+import { 
+  ApiClient, 
+  HedgeFundResponse, 
+  AnalystResponse, 
+  PortfolioManagerResponse,
+  ApiError 
+} from '@/lib/api'
 
 interface Message {
   id: string
@@ -22,28 +29,60 @@ interface ResearchResults {
   timestamp: string
 }
 
-const analysts = [
+interface ErrorDetail {
+  message: string;
+  error: string;
+  traceback: string;
+}
+
+const ANALYSTS = [
   {
+    id: 'Warren Buffett',
     name: 'Warren Buffett',
     avatar: '/avatars/warren-pixar.jpg',
     thinking: 'Analyzing financial statements and cash flows...',
   },
   {
+    id: 'Cathie Wood',
     name: 'Cathie Wood',
     avatar: '/avatars/cathie-pixar.jpg',
     thinking: 'Evaluating technological disruption potential...',
   },
   {
+    id: 'Ben Graham',
     name: 'Ben Graham',
     avatar: '/avatars/ben-pixar.jpg',
     thinking: 'Calculating margin of safety...',
   },
   {
+    id: 'Bill Ackman',
     name: 'Bill Ackman',
     avatar: '/avatars/bill-pixar.jpg',
     thinking: 'Assessing strategic value creation opportunities...',
   },
-]
+  {
+    id: 'Portfolio Manager',
+    name: 'Portfolio Manager',
+    avatar: '/avatars/wall-e.jpeg',
+    thinking: 'Synthesizing analyst recommendations...',
+  },
+] as const;
+
+// Simple regex to match stock tickers (1-5 uppercase letters)
+const TICKER_REGEX = /\b[A-Z]{1,5}\b/g;
+
+// Add type guard functions at the top level
+function isPortfolioManagerResponse(
+  response: AnalystResponse | PortfolioManagerResponse
+): response is PortfolioManagerResponse {
+  return 'decisions' in response;
+}
+
+function isAnalystResponse(
+  response: AnalystResponse | PortfolioManagerResponse
+): response is AnalystResponse {
+  return 'signals' in response && !('decisions' in response);
+}
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -53,16 +92,12 @@ export default function ChatInterface() {
   const [showResults, setShowResults] = useState(false)
   const [currentResults, setCurrentResults] = useState<ResearchResults | null>(null)
 
-  useEffect(() => {
-    const handleSuggestion = (e: CustomEvent<string>) => {
-      handleSend(e.detail)
-    }
+  const extractTickers = (text: string): string[] => {
+    const matches = text.match(TICKER_REGEX) || [];
+    return [...new Set(matches)]; // Remove duplicates
+  };
 
-    window.addEventListener('useSuggestion', handleSuggestion as EventListener)
-    return () => window.removeEventListener('useSuggestion', handleSuggestion as EventListener)
-  }, [])
-
-  const handleSend = async (content: string = input) => {
+  const handleSend = useCallback(async (content: string = input) => {
     if (!content.trim()) return
 
     const newMessage: Message = {
@@ -75,32 +110,155 @@ export default function ChatInterface() {
     setInput('')
     setIsAnalyzing(true)
 
-    // TODO: Implement actual API call to process the message
-    setTimeout(() => {
-      const analystResponses = analysts.map((analyst) => ({
-        id: Date.now().toString() + analyst.name,
-        content: `Based on my analysis of ${content.toLowerCase()}, here are my insights...`,
-        type: 'analyst' as const,
+    try {
+      // First check if the API is healthy
+      try {
+        await ApiClient.checkHealth();
+      } catch (err) {
+        throw new ApiError('API Server Not Running', {
+          message: 'The API server is not responding',
+          error: 'Please make sure the FastAPI server is running:\nrun `uvicorn src.backend.api:app --reload --port 8000`',
+          traceback: '',
+        });
+      }
+
+      // Extract tickers from the message
+      const tickers = extractTickers(content.toUpperCase());
+      
+      if (tickers.length > 0) {
+        try {
+          // Make API call to analyze stocks
+          const result = await ApiClient.analyzeStocks({
+            tickers,
+          });
+
+          const analystResponses: Message[] = [];
+
+          // Create response messages for each analyst
+          Object.entries(result).forEach(([analystName, analysis]) => {
+            const analyst = ANALYSTS.find(a => a.name === analystName);
+            if (!analyst) return;
+
+            if (analystName === 'Portfolio Manager' && isPortfolioManagerResponse(analysis)) {
+              // Create portfolio manager summary message
+              const decisions = analysis.decisions;
+              tickers.forEach(ticker => {
+                const decision = decisions[ticker];
+                if (!decision) return;
+
+                analystResponses.push({
+                  id: Date.now().toString() + analyst.id + ticker,
+                  content: `${ticker}: ${decision.action.toUpperCase()} - ${decision.reasoning}`,
+                  type: 'analyst',
+                  analyst: {
+                    name: analyst.name,
+                    avatar: analyst.avatar,
+                  },
+                  chainOfThought: [
+                    `Action: ${decision.action.toUpperCase()}`,
+                    `Quantity: ${decision.quantity} shares`,
+                    `Confidence: ${(decision.confidence || 0)}%`,
+                  ].filter(Boolean) as string[],
+                });
+              });
+            } else if (isAnalystResponse(analysis)) {
+              // Create individual analyst messages
+              tickers.forEach(ticker => {
+                const signal = analysis.signals[ticker];
+                if (!signal) return;
+
+                analystResponses.push({
+                  id: Date.now().toString() + analyst.id + ticker,
+                  content: `${ticker}: ${signal.signal.toUpperCase()} - ${signal.reasoning}`,
+                  type: 'analyst',
+                  analyst: {
+                    name: analyst.name,
+                    avatar: analyst.avatar,
+                  },
+                  chainOfThought: [
+                    `Signal: ${signal.signal.toUpperCase()}`,
+                    `Confidence: ${(signal.confidence || 0)}%`,
+                  ].filter(Boolean) as string[],
+                });
+              });
+            }
+          });
+
+          setMessages(prev => [...prev, ...analystResponses]);
+          setCurrentResults({
+            query: content,
+            responses: analystResponses,
+            timestamp: new Date().toLocaleString(),
+          });
+
+        } catch (err) {
+          console.error('API Error:', err);
+          const errorDetail = err instanceof ApiError ? 
+            err.detail : 
+            { 
+              message: err instanceof Error ? err.message : 'An unknown error occurred',
+              error: 'Please check the console for more details',
+              traceback: '',
+            };
+
+          const errorMessage: Message = {
+            id: Date.now().toString(),
+            content: "An error occurred while analyzing the stocks:",
+            type: 'analyst',
+            analyst: {
+              name: 'System',
+              avatar: '/avatars/wall-e.svg',
+            },
+            chainOfThought: [
+              `Error: ${errorDetail.message}`,
+              ...(errorDetail.error ? [`Details: ${errorDetail.error}`] : []),
+              ...(errorDetail.traceback ? [`Stack Trace: ${errorDetail.traceback}`] : []),
+            ],
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+        }
+      } else {
+        // If no tickers found, provide a helpful message
+        const helpMessage: Message = {
+          id: Date.now().toString(),
+          content: "I can help you analyze stocks! Just mention any stock ticker (e.g., AAPL, MSFT, GOOGL) in your message.",
+          type: 'analyst',
+          analyst: {
+            name: 'System',
+            avatar: '/avatars/wall-e.svg',
+          },
+        };
+        setMessages((prev) => [...prev, helpMessage]);
+      }
+    } catch (error) {
+      console.error('General Error:', error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        content: "Sorry, I encountered an error while processing your request.",
+        type: 'analyst',
         analyst: {
-          name: analyst.name,
-          avatar: analyst.avatar,
+          name: 'System',
+          avatar: '/avatars/wall-e.svg',
         },
         chainOfThought: [
-          analyst.thinking.replace('...', ''),
-          "Evaluating market trends...",
-          "Forming investment thesis...",
-        ],
-      }))
-      
-      setMessages((prev) => [...prev, ...analystResponses])
-      setIsAnalyzing(false)
-      setCurrentResults({
-        query: content,
-        responses: analystResponses,
-        timestamp: new Date().toLocaleString(),
-      })
-    }, 2000)
-  }
+          `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error instanceof ApiError ? `Details: ${error.detail.error}` : '',
+        ].filter(Boolean),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [input]);
+
+  useEffect(() => {
+    const handleSuggestion = (e: CustomEvent<string>) => {
+      handleSend(e.detail)
+    }
+
+    window.addEventListener('useSuggestion', handleSuggestion as EventListener)
+    return () => window.removeEventListener('useSuggestion', handleSuggestion as EventListener)
+  }, [handleSend])
 
   const handleExportToGoogleDocs = () => {
     // TODO: Implement Google Docs export
@@ -178,9 +336,9 @@ export default function ChatInterface() {
             )}
             {isAnalyzing && (
               <div className="space-y-3">
-                {analysts.map((analyst, index) => (
+                {ANALYSTS.map((analyst, index) => (
                   <motion.div
-                    key={analyst.name}
+                    key={analyst.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.2 }}

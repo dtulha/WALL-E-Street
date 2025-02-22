@@ -5,30 +5,33 @@ import SuggestionPrompts from '@/components/SuggestionPrompts'
 const suggestionPrompts = [
   {
     title: "Company Analysis",
-    prompt: "Analyze Tesla's competitive position in the EV market",
+    prompt: "Analyze AAPL's competitive position in the smartphone market",
   },
   {
     title: "Market Research",
-    prompt: "What's the outlook for AI semiconductor stocks?",
+    prompt: "What's the outlook for AI semiconductor stocks like NVDA and AMD?",
   },
   {
     title: "Investment Strategy",
-    prompt: "Compare value vs. growth investing in the current market",
+    prompt: "Compare value stocks like KO and PG vs. growth stocks like TSLA and AMZN",
   },
   {
     title: "Risk Assessment",
-    prompt: "Evaluate the risks of investing in regional banks",
+    prompt: "Evaluate the risks of investing in regional banks like JPM and BAC",
   },
 ]
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-5xl px-4 py-6">
-        <div className="mb-6 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+    <main className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
             WALL-E Street
           </h1>
+          <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+            Your AI-powered hedge fund analysis platform. Just chat about any stocks you're interested in!
+          </p>
         </div>
 
         <div className="mb-12">
