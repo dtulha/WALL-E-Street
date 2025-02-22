@@ -6,6 +6,7 @@ export const analysts = [
     role: "Quantitative Analyst",
     avatar: "/placeholder.svg",
     description: "Specializes in statistical analysis and financial modeling",
+    reasoning: [], // Add the missing reasoning property
   },
   {
     id: "specialist",
@@ -13,6 +14,7 @@ export const analysts = [
     role: "Industry Specialist",
     avatar: "/placeholder.svg",
     description: "Deep expertise in sector-specific analysis",
+    reasoning: [], // Add the missing reasoning property
   },
   {
     id: "designer",
@@ -20,6 +22,7 @@ export const analysts = [
     role: "Report Designer",
     avatar: "/placeholder.svg",
     description: "Transforms complex data into clear visual insights",
+    reasoning: [], // Add the missing reasoning property
   },
   {
     id: "reviewer",
@@ -27,5 +30,6 @@ export const analysts = [
     role: "Quality Reviewer",
     avatar: "/placeholder.svg",
     description: "Ensures accuracy and completeness of analysis",
+    reasoning: [], // Add the missing reasoning property
   },
 ];
