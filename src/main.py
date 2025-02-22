@@ -108,7 +108,7 @@ def run_hedge_fund(
 
         # Add portfolio manager summary with Wall-E avatar
         responses["Portfolio Manager"] = {
-            "avatar": "/avatars/wall-e.svg",
+            "avatar": "/avatars/wall-e.jpeg",
             "decisions": portfolio_decisions or {},
             "signals": analyst_signals.get("portfolio_management_agent", {})
         }
