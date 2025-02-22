@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "setup": "./scripts/setup.sh",
-    "predev": "npm run setup",
+    "postinstall": "npm run setup",
     "dev": "concurrently \"next dev --turbopack\" \"npm run backend\"",
     "backend": "source venv/bin/activate && uvicorn src.backend.api:app --reload --port 8000",
     "build": "next build",
