@@ -37,10 +37,7 @@ export default function Home() {
         </div>
 
         <div className="mb-16">
-          <div className="mb-8 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Your Research Team</h2>
-            <button className="text-sm text-primary hover:text-primary-dark">View All →</button>
-          </div>
+          <h2 className="mb-8 text-xl font-semibold text-gray-900">Your Research Team</h2>
           <AnalystTeam />
         </div>
       </div>
