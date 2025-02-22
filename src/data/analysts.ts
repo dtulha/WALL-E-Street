@@ -2,34 +2,34 @@
 export const analysts = [
   {
     id: "quant",
-    name: "Dr. Quinn Thomson",
+    name: "CALC-U",
     role: "Quantitative Analyst",
-    avatar: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e",
-    description: "Specializes in statistical analysis and financial modeling",
+    avatar: "https://cdn.gpteng.co/images/robot-1",
+    description: "A computational genius who processes market data at the speed of light",
     reasoning: [], // Add the missing reasoning property
   },
   {
     id: "specialist",
-    name: "Sarah Chen",
+    name: "EVE-S",
     role: "Industry Specialist",
-    avatar: "https://images.unsplash.com/photo-1501286353178-1ec881214838",
-    description: "Deep expertise in sector-specific analysis",
+    avatar: "https://cdn.gpteng.co/images/robot-2",
+    description: "Advanced scanner with deep knowledge of every industry sector",
     reasoning: [], // Add the missing reasoning property
   },
   {
     id: "designer",
-    name: "Alex Rivera",
+    name: "PIX-AR",
     role: "Report Designer",
-    avatar: "https://images.unsplash.com/photo-1582562124811-c09040d0a901",
-    description: "Transforms complex data into clear visual insights",
+    avatar: "https://cdn.gpteng.co/images/robot-3",
+    description: "Creative bot that turns raw data into beautiful visual stories",
     reasoning: [], // Add the missing reasoning property
   },
   {
     id: "reviewer",
-    name: "Michael Stone",
+    name: "M-O",
     role: "Quality Reviewer",
-    avatar: "https://images.unsplash.com/photo-1535268647677-300dbf3d78d1",
-    description: "Ensures accuracy and completeness of analysis",
+    avatar: "https://cdn.gpteng.co/images/robot-4",
+    description: "Meticulous maintenance bot ensuring spotless analysis quality",
     reasoning: [], // Add the missing reasoning property
   },
 ];

@@ -61,8 +61,8 @@ const Index = () => {
         className="max-w-6xl mx-auto space-y-8"
       >
         <header className="text-center">
-          <h1 className="text-4xl font-bold tracking-tight">AI Equity Research Team</h1>
-          <p className="mt-2 text-muted-foreground">Your personal team of AI analysts</p>
+          <h1 className="text-4xl font-bold tracking-tight">WALL-E Street</h1>
+          <p className="mt-2 text-muted-foreground">Your robotic equity research team from the future</p>
         </header>
 
         <InputSection
