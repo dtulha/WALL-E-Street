@@ -12,6 +12,13 @@ import {
   ApiError 
 } from '@/lib/api'
 
+interface ErrorDetail {
+  title: string;
+  message: string;
+  error: string;
+  traceback: string;
+}
+
 interface Message {
   id: string
   content: string
@@ -27,12 +34,6 @@ interface ResearchResults {
   query: string
   responses: Message[]
   timestamp: string
-}
-
-interface ErrorDetail {
-  message: string;
-  error: string;
-  traceback: string;
 }
 
 const ANALYSTS = [
@@ -91,6 +92,7 @@ export default function ChatInterface() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [currentResults, setCurrentResults] = useState<ResearchResults | null>(null)
+  const [error, setError] = useState<ErrorDetail | null>(null)
 
   const extractTickers = (text: string): string[] => {
     const matches = text.match(TICKER_REGEX) || [];
@@ -163,24 +165,26 @@ export default function ChatInterface() {
               });
             } else if (isAnalystResponse(analysis)) {
               // Create individual analyst messages
-              tickers.forEach(ticker => {
-                const signal = analysis.signals[ticker];
-                if (!signal) return;
+              if (analysis.signals) {
+                tickers.forEach(ticker => {
+                  const signal = analysis.signals![ticker];
+                  if (!signal) return;
 
-                analystResponses.push({
-                  id: Date.now().toString() + analyst.id + ticker,
-                  content: `${ticker}: ${signal.signal.toUpperCase()} - ${signal.reasoning}`,
-                  type: 'analyst',
-                  analyst: {
-                    name: analyst.name,
-                    avatar: analyst.avatar,
-                  },
-                  chainOfThought: [
-                    `Signal: ${signal.signal.toUpperCase()}`,
-                    `Confidence: ${(signal.confidence || 0)}%`,
-                  ].filter(Boolean) as string[],
+                  analystResponses.push({
+                    id: Date.now().toString() + analyst.id + ticker,
+                    content: `${ticker}: ${signal.signal.toUpperCase()} - ${signal.reasoning}`,
+                    type: 'analyst',
+                    analyst: {
+                      name: analyst.name,
+                      avatar: analyst.avatar,
+                    },
+                    chainOfThought: [
+                      `Signal: ${signal.signal.toUpperCase()}`,
+                      `Confidence: ${(signal.confidence || 0)}%`,
+                    ].filter(Boolean) as string[],
+                  });
                 });
-              });
+              }
             }
           });
 
@@ -192,30 +196,21 @@ export default function ChatInterface() {
           });
 
         } catch (err) {
-          console.error('API Error:', err);
-          const errorDetail = err instanceof ApiError ? 
-            err.detail : 
-            { 
-              message: err instanceof Error ? err.message : 'An unknown error occurred',
-              error: 'Please check the console for more details',
+          if (err instanceof ApiError) {
+            setError({
+              title: err.message,
+              message: err.details?.message || 'An error occurred while analyzing stocks',
+              error: err.details?.error || 'Unknown error',
+              traceback: err.details?.traceback || '',
+            });
+          } else {
+            setError({
+              title: 'Error',
+              message: 'An unexpected error occurred',
+              error: err instanceof Error ? err.message : 'Unknown error',
               traceback: '',
-            };
-
-          const errorMessage: Message = {
-            id: Date.now().toString(),
-            content: "An error occurred while analyzing the stocks:",
-            type: 'analyst',
-            analyst: {
-              name: 'System',
-              avatar: '/avatars/wall-e.svg',
-            },
-            chainOfThought: [
-              `Error: ${errorDetail.message}`,
-              ...(errorDetail.error ? [`Details: ${errorDetail.error}`] : []),
-              ...(errorDetail.traceback ? [`Stack Trace: ${errorDetail.traceback}`] : []),
-            ],
-          };
-          setMessages((prev) => [...prev, errorMessage]);
+            });
+          }
         }
       } else {
         // If no tickers found, provide a helpful message
@@ -230,22 +225,22 @@ export default function ChatInterface() {
         };
         setMessages((prev) => [...prev, helpMessage]);
       }
-    } catch (error) {
-      console.error('General Error:', error);
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        content: "Sorry, I encountered an error while processing your request.",
-        type: 'analyst',
-        analyst: {
-          name: 'System',
-          avatar: '/avatars/wall-e.svg',
-        },
-        chainOfThought: [
-          `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          error instanceof ApiError ? `Details: ${error.detail.error}` : '',
-        ].filter(Boolean),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError({
+          title: err.message,
+          message: err.details?.message || 'An error occurred while sending the message',
+          error: err.details?.error || 'Unknown error',
+          traceback: err.details?.traceback || '',
+        });
+      } else {
+        setError({
+          title: 'Error',
+          message: 'An unexpected error occurred',
+          error: err instanceof Error ? err.message : 'Unknown error',
+          traceback: '',
+        });
+      }
     } finally {
       setIsAnalyzing(false);
     }
