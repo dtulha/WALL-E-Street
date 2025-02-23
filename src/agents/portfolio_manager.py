@@ -98,12 +98,71 @@ def generate_trading_decision(
     model_provider: str,
 ) -> PortfolioManagerOutput:
     """Attempts to get a decision from the LLM with retry logic"""
+    
+    # Map agent names to display names
+    analyst_display_names = {
+        "warren_buffett_agent": "Warren Buffett",
+        "bill_ackman_agent": "Bill Ackman",
+        "cathie_wood_agent": "Cathie Wood",
+        "ben_graham_agent": "Ben Graham"
+    }
+
+    # Convert agent names to display names in signals
+    formatted_signals = {}
+    for ticker, signals in signals_by_ticker.items():
+        formatted_signals[ticker] = {
+            analyst_display_names.get(agent_name, agent_name): signal_data
+            for agent_name, signal_data in signals.items()
+        }
+
     # Create the prompt template
     template = ChatPromptTemplate.from_messages(
         [
             (
               "system",
               """You are a portfolio manager making final trading decisions based on multiple tickers.
+
+              Position Analysis:
+              - Detailed position sizing methodology
+              - Portfolio concentration analysis
+              - Correlation between holdings
+              - Sector exposure assessment
+              - Risk-adjusted return metrics
+
+              Risk Management Framework:
+              - Value at Risk (VaR) calculations
+              - Position-level stop loss criteria
+              - Portfolio-level risk limits
+              - Margin utilization analysis
+              - Leverage impact assessment
+
+              Trading Strategy:
+              - Entry and exit point analysis
+              - Order type recommendations
+              - Liquidity impact assessment
+              - Trading cost analysis
+              - Implementation timing
+
+              Portfolio Construction:
+              - Asset allocation strategy
+              - Diversification metrics
+              - Factor exposure analysis
+              - Style tilt assessment
+              - Portfolio rebalancing criteria
+
+              Signal Integration:
+              - Analyst recommendation weighting
+              - Conviction level assessment
+              - Conflicting signal resolution
+              - Time horizon alignment
+              - Catalyst identification
+
+              Performance Attribution:
+              - Return decomposition
+              - Risk contribution analysis
+              - Style factor impact
+              - Trading cost impact
+              - Alpha generation sources
 
               Trading Rules:
               - For long positions:
@@ -118,24 +177,19 @@ def generate_trading_decision(
                 * Cover quantity must be ≤ current short position shares
                 * Short quantity must respect margin requirements
               
-              - The max_shares values are pre-calculated to respect position limits
-              - Consider both long and short opportunities based on signals
-              - Maintain appropriate risk management with both long and short exposure
+              - Position Sizing Rules:
+                * Consider analyst conviction levels
+                * Account for stock-specific volatility
+                * Respect sector concentration limits
+                * Maintain appropriate portfolio balance
+                * Consider liquidity constraints
 
-              Available Actions:
-              - "buy": Open or add to long position
-              - "sell": Close or reduce long position
-              - "short": Open or add to short position
-              - "cover": Close or reduce short position
-              - "hold": No action
-
-              Inputs:
-              - signals_by_ticker: dictionary of ticker → signals
-              - max_shares: maximum shares allowed per ticker
-              - portfolio_cash: current cash in portfolio
-              - portfolio_positions: current positions (both long and short)
-              - current_prices: current prices for each ticker
-              - margin_requirement: current margin requirement for short positions
+              - Risk Management Rules:
+                * Monitor portfolio-level risk metrics
+                * Set position-specific stop losses
+                * Track correlation among holdings
+                * Maintain cash reserves as appropriate
+                * Consider macro risk factors
               """,
             ),
             (
@@ -175,10 +229,10 @@ def generate_trading_decision(
         ]
     )
 
-    # Generate the prompt
+    # Generate the prompt using formatted signals
     prompt = template.invoke(
         {
-            "signals_by_ticker": json.dumps(signals_by_ticker, indent=2),
+            "signals_by_ticker": json.dumps(formatted_signals, indent=2),
             "current_prices": json.dumps(current_prices, indent=2),
             "max_shares": json.dumps(max_shares, indent=2),
             "portfolio_cash": f"{portfolio.get('cash', 0):.2f}",

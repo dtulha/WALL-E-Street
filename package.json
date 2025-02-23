@@ -12,6 +12,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@11labs/react": "^0.0.7",
+    "@google-cloud/local-auth": "^3.0.1",
     "@headlessui/react": "^1.7.17",
     "@heroicons/react": "^2.1.1",
     "@radix-ui/react-avatar": "^1.0.4",
@@ -21,6 +23,8 @@
     "clsx": "^2.1.0",
     "daisyui": "^4.6.1",
     "framer-motion": "^11.0.3",
+    "googleapis": "^144.0.0",
+    "jspdf": "^3.0.0",
     "lucide-react": "^0.330.0",
     "next": "14.1.0",
     "react": "^18.2.0",
@@ -32,7 +36,7 @@
     "@types/node": "^20.11.16",
     "@types/react": "^18.2.52",
     "@types/react-dom": "^18.2.18",
-    "autoprefixer": "^10.4.17",
+    "autoprefixer": "^10.4.20",
     "concurrently": "^8.2.2",
     "eslint": "^8.56.0",
     "eslint-config-next": "14.1.0",

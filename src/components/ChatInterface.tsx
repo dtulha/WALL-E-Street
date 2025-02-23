@@ -11,6 +11,8 @@ import {
   PortfolioManagerResponse,
   ApiError 
 } from '@/lib/api'
+import jsPDF from 'jspdf'
+import ElevenLabsConversation from './ElevenLabsConversation'
 
 interface ErrorDetail {
   title: string;
@@ -32,7 +34,14 @@ interface Message {
 
 interface ResearchResults {
   query: string
-  responses: Message[]
+  responses: Array<{
+    analyst: {
+      name: string
+      avatar: string
+    }
+    content: string
+    chainOfThought?: string[]
+  }>
   timestamp: string
 }
 
@@ -88,11 +97,11 @@ function isAnalystResponse(
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
-  const [isRecording, setIsRecording] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [currentResults, setCurrentResults] = useState<ResearchResults | null>(null)
   const [error, setError] = useState<ErrorDetail | null>(null)
+  const [showElevenLabsConversation, setShowElevenLabsConversation] = useState(false)
 
   const extractTickers = (text: string): string[] => {
     const matches = text.match(TICKER_REGEX) || [];
@@ -191,7 +200,14 @@ export default function ChatInterface() {
           setMessages(prev => [...prev, ...analystResponses]);
           setCurrentResults({
             query: content,
-            responses: analystResponses,
+            responses: analystResponses.map(response => ({
+              analyst: {
+                name: response.analyst?.name || '',
+                avatar: response.analyst?.avatar || '',
+              },
+              content: response.content,
+              chainOfThought: response.chainOfThought,
+            })),
             timestamp: new Date().toLocaleString(),
           });
 
@@ -255,10 +271,45 @@ export default function ChatInterface() {
     return () => window.removeEventListener('useSuggestion', handleSuggestion as EventListener)
   }, [handleSend])
 
-  const handleExportToGoogleDocs = () => {
-    // TODO: Implement Google Docs export
-    console.log('Exporting to Google Docs...')
-  }
+  const handleExportToGoogleDocs = async () => {
+    if (!currentResults) return;
+
+    try {
+      const response = await fetch('/api/google-docs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: currentResults.query,
+          responses: currentResults.responses,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.needsAuth) {
+        // Redirect to Google auth
+        window.location.href = data.authUrl;
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to export to Google Docs');
+      }
+
+      // Open the document in a new tab
+      window.open(data.url, '_blank');
+    } catch (error) {
+      console.error('Error exporting to Google Docs:', error);
+      setError({
+        title: 'Export Failed',
+        message: 'Failed to export to Google Docs',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        traceback: '',
+      });
+    }
+  };
 
   const handleCopyToClipboard = () => {
     if (!currentResults) return
@@ -269,9 +320,59 @@ export default function ChatInterface() {
     navigator.clipboard.writeText(text)
   }
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording)
-    // TODO: Implement actual voice recording logic
+  const handleExportToPDF = () => {
+    if (!currentResults) return
+    
+    const doc = new jsPDF()
+    let yPos = 20
+
+    // Add title
+    doc.setFontSize(16)
+    doc.text('Research Results', 20, yPos)
+    yPos += 10
+
+    // Add query and timestamp
+    doc.setFontSize(12)
+    doc.text(`Query: ${currentResults.query}`, 20, yPos)
+    yPos += 10
+    doc.text(`Generated on: ${currentResults.timestamp}`, 20, yPos)
+    yPos += 20
+
+    // Add responses
+    currentResults.responses.forEach((response) => {
+      // Add analyst name
+      doc.setFontSize(14)
+      doc.text(response.analyst?.name || '', 20, yPos)
+      yPos += 10
+
+      // Add content
+      doc.setFontSize(12)
+      const contentLines = doc.splitTextToSize(response.content, 170)
+      doc.text(contentLines, 20, yPos)
+      yPos += contentLines.length * 7
+
+      // Add chain of thought
+      if (response.chainOfThought) {
+        doc.text('Key Points:', 20, yPos)
+        yPos += 10
+        response.chainOfThought.forEach((thought) => {
+          const thoughtLines = doc.splitTextToSize(`• ${thought}`, 170)
+          doc.text(thoughtLines, 20, yPos)
+          yPos += thoughtLines.length * 7
+        })
+      }
+
+      yPos += 10
+
+      // Add new page if needed
+      if (yPos > 270) {
+        doc.addPage()
+        yPos = 20
+      }
+    })
+
+    // Save the PDF
+    doc.save(`research-results-${new Date().toISOString().split('T')[0]}.pdf`)
   }
 
   return (
@@ -366,24 +467,6 @@ export default function ChatInterface() {
           </div>
 
           <div className="mt-4 flex items-center gap-3">
-            <button
-              onClick={toggleRecording}
-              className={`flex items-center gap-2 rounded-lg px-3 py-2 transition-colors ${
-                isRecording ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {isRecording ? (
-                <>
-                  <StopCircle className="h-5 w-5" />
-                  <span className="text-sm font-medium">Stop Recording</span>
-                </>
-              ) : (
-                <>
-                  <Mic className="h-5 w-5" />
-                  <span className="text-sm font-medium">Talk to the team</span>
-                </>
-              )}
-            </button>
             <div className="flex flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 focus-within:border-primary">
               <Link className="h-4 w-4 text-gray-400" />
               <input
@@ -449,9 +532,16 @@ export default function ChatInterface() {
                   Copy to Clipboard
                 </button>
                 <button
+                  onClick={handleExportToPDF}
+                  className="flex items-center gap-2 rounded-lg bg-gray-100 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-200"
+                >
+                  <FileText className="h-4 w-4" />
+                  Export to PDF
+                </button>
+                <button
                   onClick={() => {
                     setShowResults(false)
-                    setInput('Let\'s discuss these research findings')
+                    setShowElevenLabsConversation(true)
                   }}
                   className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-white transition-colors hover:bg-primary-dark"
                 >
@@ -496,6 +586,12 @@ export default function ChatInterface() {
           </div>
         )}
       </AnimatePresence>
+
+      <ElevenLabsConversation
+        isOpen={showElevenLabsConversation}
+        onClose={() => setShowElevenLabsConversation(false)}
+        researchContext={currentResults}
+      />
     </>
   )
 } 
