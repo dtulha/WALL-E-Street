@@ -96,7 +96,9 @@ export default function ElevenLabsConversation({ isOpen, onClose, researchContex
       // Start conversation with dynamic variable
       conversation.startSession({ 
         context,
-        variables
+        dynamicVariables: {
+          ResearchContext: variables.ResearchContext
+        }
       }).catch(error => {
         console.error('Failed to start session:', error)
         setTranscript(prev => [...prev, { 
