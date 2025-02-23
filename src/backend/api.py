@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 import logging
 import traceback
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,10 +22,19 @@ from main import run_hedge_fund
 
 app = FastAPI()
 
+# Get allowed origins from environment or use default
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",  # In case 3000 is taken
+    os.getenv("VERCEL_URL", ""),  # Vercel deployment URL
+]
+if vercel_url := os.getenv("VERCEL_URL"):
+    allowed_origins.append(f"https://{vercel_url}")
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Allow frontend origin
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
