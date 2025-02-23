@@ -12,6 +12,7 @@ import {
   ApiError 
 } from '@/lib/api'
 import jsPDF from 'jspdf'
+import ElevenLabsConversation from './ElevenLabsConversation'
 
 interface ErrorDetail {
   title: string;
@@ -33,7 +34,14 @@ interface Message {
 
 interface ResearchResults {
   query: string
-  responses: Message[]
+  responses: Array<{
+    analyst: {
+      name: string
+      avatar: string
+    }
+    content: string
+    chainOfThought?: string[]
+  }>
   timestamp: string
 }
 
@@ -93,6 +101,7 @@ export default function ChatInterface() {
   const [showResults, setShowResults] = useState(false)
   const [currentResults, setCurrentResults] = useState<ResearchResults | null>(null)
   const [error, setError] = useState<ErrorDetail | null>(null)
+  const [showElevenLabsConversation, setShowElevenLabsConversation] = useState(false)
 
   const extractTickers = (text: string): string[] => {
     const matches = text.match(TICKER_REGEX) || [];
@@ -191,7 +200,14 @@ export default function ChatInterface() {
           setMessages(prev => [...prev, ...analystResponses]);
           setCurrentResults({
             query: content,
-            responses: analystResponses,
+            responses: analystResponses.map(response => ({
+              analyst: {
+                name: response.analyst?.name || '',
+                avatar: response.analyst?.avatar || '',
+              },
+              content: response.content,
+              chainOfThought: response.chainOfThought,
+            })),
             timestamp: new Date().toLocaleString(),
           });
 
@@ -255,10 +271,45 @@ export default function ChatInterface() {
     return () => window.removeEventListener('useSuggestion', handleSuggestion as EventListener)
   }, [handleSend])
 
-  const handleExportToGoogleDocs = () => {
-    // TODO: Implement Google Docs export
-    console.log('Exporting to Google Docs...')
-  }
+  const handleExportToGoogleDocs = async () => {
+    if (!currentResults) return;
+
+    try {
+      const response = await fetch('/api/google-docs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: currentResults.query,
+          responses: currentResults.responses,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.needsAuth) {
+        // Redirect to Google auth
+        window.location.href = data.authUrl;
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to export to Google Docs');
+      }
+
+      // Open the document in a new tab
+      window.open(data.url, '_blank');
+    } catch (error) {
+      console.error('Error exporting to Google Docs:', error);
+      setError({
+        title: 'Export Failed',
+        message: 'Failed to export to Google Docs',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        traceback: '',
+      });
+    }
+  };
 
   const handleCopyToClipboard = () => {
     if (!currentResults) return
@@ -490,7 +541,7 @@ export default function ChatInterface() {
                 <button
                   onClick={() => {
                     setShowResults(false)
-                    setInput('Let\'s discuss these research findings')
+                    setShowElevenLabsConversation(true)
                   }}
                   className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-white transition-colors hover:bg-primary-dark"
                 >
@@ -535,6 +586,12 @@ export default function ChatInterface() {
           </div>
         )}
       </AnimatePresence>
+
+      <ElevenLabsConversation
+        isOpen={showElevenLabsConversation}
+        onClose={() => setShowElevenLabsConversation(false)}
+        researchContext={currentResults}
+      />
     </>
   )
 } 
