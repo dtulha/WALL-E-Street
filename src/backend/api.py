@@ -28,7 +28,7 @@ allowed_origins = [
     "http://localhost:3001",  # In case 3000 is taken
     os.getenv("VERCEL_URL", ""),  # Vercel deployment URL
 ]
-if vercel_url := os.getenv("VERCEL_URL"):
+if vercel_url := os.getenv("NEXT_PUBLIC_URL"):
     allowed_origins.append(f"https://{vercel_url}")
 
 # Add CORS middleware

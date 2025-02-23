@@ -7,8 +7,8 @@
       "config": {
         "runtime": "python3.12",
         "maxLambdaSize": "50mb",
-        "installCommand": "pip install -r requirements.txt --no-deps && pip install uvicorn fastapi",
-        "excludeFiles": ["venv/**", "**/__pycache__/**"]
+        "memory": 1024,
+        "maxDuration": 60
       }
     },
     {
@@ -23,10 +23,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/$1"
+      "dest": "/"
     }
-  ],
-  "env": {
-    "PYTHONPATH": "."
-  }
+  ]
 } 
